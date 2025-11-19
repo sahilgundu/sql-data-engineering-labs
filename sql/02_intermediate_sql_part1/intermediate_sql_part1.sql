@@ -1,6 +1,7 @@
 -- ========================================
 -- -- SQL Aggregate Functions
 -- ========================================   
+
 /* Arithmetic operators only perform operations across rows. Aggregate functions are used to perform 
 operations across entire columns (which could include millions of rows of data or more).*/
 
@@ -47,6 +48,7 @@ SELECT
   COUNT(id) AS count_of_id
 FROM tutorial.aapl_historical_stock_price;
 
+
 -- ========================================
 -- -- SQL SUM
 -- ========================================   
@@ -74,14 +76,14 @@ FROM tutorial.aapl_historical_stock_price;
 -- -- SQL MIN/MAX
 -- ========================================   
 /*
-MIN and MAX are SQL aggregation functions that return the lowest and highest values in a particular column.
-
-They're similar to COUNT in that they can be used on non-numerical columns. 
-
-Depending on the column type, 
-MIN will return the lowest number, earliest date, or non-numerical value as close alphabetically to "A" as possible. 
-As you might suspect, MAX does the opposite—it returns the highest number, the latest date, or the non-numerical 
-value closest alphabetically to "Z."
+	MIN and MAX are SQL aggregation functions that return the lowest and highest values in a particular column.
+	
+	They're similar to COUNT in that they can be used on non-numerical columns. 
+	
+	Depending on the column type, 
+	MIN will return the lowest number, earliest date, or non-numerical value as close alphabetically to "A" as possible. 
+	As you might suspect, MAX does the opposite—it returns the highest number, the latest date, or the non-numerical 
+	value closest alphabetically to "Z."
 */
 
 SELECT MIN(volume) AS min_volume,
@@ -89,8 +91,8 @@ SELECT MIN(volume) AS min_volume,
 FROM tutorial.aapl_historical_stock_price;
 
 /*
-Practice Problem
-What was Apple's lowest stock price (at the time of this data collection)?
+	Practice Problem
+	What was Apple's lowest stock price (at the time of this data collection)?
 */
 SELECT MIN(low) AS lowest_stock_price
 FROM tutorial.aapl_historical_stock_price;

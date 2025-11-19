@@ -21,7 +21,8 @@ ORDER BY players.weight DESC;
 /*
 you might have a table called schools with a field called id, which could be joined against 
 school_id in any other table. These relationships are sometimes called "mappings." teams.school_name 
-and players.school_name, the two columns that map to one another, are referred to as "foreign keys" or "join keys." Their mapping is written as a conditional statement:
+and players.school_name, the two columns that map to one another, are referred to as "foreign keys" or "join keys." 
+Their mapping is written as a conditional statement:
 */
 ON teams.school_name = players.school_name
 

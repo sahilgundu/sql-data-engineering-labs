@@ -1,5 +1,14 @@
 -- CTE (Common TABLE Expression) OR WITH Clause OR Subquery Factoring - 
 
+/*
+ * CTE Advantages:
+ * 	1. More readable
+ * 	2. Performance is increased
+ * 	3. Can be used as an alternate of Creating view or creating temporary table. 
+ *	4. When to use CTE - when you are using subquery more than once in your solution. 
+ **/
+
+
 create table emp
 ( emp_ID int
 , emp_NAME varchar(50)
@@ -11,6 +20,7 @@ insert into emp values(103, 'Robin', 60000);
 insert into emp values(104, 'Carol', 70000);
 insert into emp values(105, 'Alice', 80000);
 insert into emp values(106, 'Jimmy', 90000);
+
 
 select * 
 from emp;
@@ -34,7 +44,7 @@ WHERE e.salary >
 				);
 
 
--- using WITH clause
+-- using WITH clause/CTE
 WITH avg_salary(avg_sal) AS 
 							(
 								SELECT avg(salary)
@@ -80,7 +90,7 @@ CROSS JOIN avg_salary av
 WHERE e.salary > av.avg_sal;
 
 
--- CROSS Join/ cartesian Join of emp and avg_salary tables
+-- CROSS Join/ cartesian Join of emp and avg_salary tables (for practice & understanding)
 
 WITH avg_salary(avg_sal) AS (
     SELECT cast(avg(salary) AS int) 
@@ -100,7 +110,7 @@ WITH avg_sal(avg_salary) AS
 		)
 SELECT *
 FROM emp e
-JOIN avg_sal av 
+INNER JOIN avg_sal av 
 ON e.salary > av.avg_salary;
 
 /* Order of execution - 
@@ -116,7 +126,8 @@ ON e.salary > av.avg_salary;
 
 
 ----------------------------------------------------------------------------------------
-create table sales
+
+create table IF NOT EXISTS customer.sales
 (
 	store_id  		int,
 	store_name  	varchar(50),
@@ -139,50 +150,154 @@ insert into sales values
 (4, 'Apple Originals 4','iPhone 12 Pro', 2, 1000),
 (4, 'Apple Originals 4','MacBook pro 13', 1, 2500);
 
-select * from sales;
+select * from customer.sales;
 
 
--- QUERY 2 : Find total sales per each store
+-- QUERY 2 : Find stores who's sales is better than the average sales accross all stores. 
+--			 (Note:There are total 4 stores) 
 
+-- We will divide above query in these 3 steps -  
+-- 1. Find total sales per each store
+-- 2. Find average sales with respect to all stores
+-- 3. Find stores who's sales is better than the average sales accross all stores 
+
+
+-- 1. Find total sales per each store -- total_sales_per_store
 select 
 	s.store_id, 
 	sum(s.cost) as total_sales_per_store
 from sales s
-group by s.store_id;
+group by s.store_id
+ORDER BY s.store_id; 
 
 
--- Find average sales with respect to all stores
-select cast(avg(total_sales_per_store) as int) avg_sale_for_all_store
-from (select s.store_id, sum(s.cost) as total_sales_per_store
-	from sales s
-	group by s.store_id) x;
+-- 2. Find average sales with respect to all stores -- avg_sale_for_all_store
+SELECT
+	avg(x.total_sales_per_store) AS avg_sale_for_all_store
+FROM 
+	(
+		SELECT 
+			s.store_id, 
+			sum(s.cost) as total_sales_per_store
+		FROM sales s
+		GROUP BY s.store_id
+		ORDER BY s.store_id
+	) AS x;
+
+
+-- 3. (Without using WITH clause) Find stores who's sales is better than the average sales accross all stores 
+
+SELECT *
+FROM   (
+			SELECT 
+				s.store_id, 
+				sum(s.cost) AS total_sales_per_store
+			FROM sales s
+			GROUP BY s.store_id
+			ORDER BY s.store_id
+	   ) AS total_sales 
+	   
+INNER JOIN (
+		SELECT
+			avg(x.total_sales_per_store) AS avg_sale_for_all_store
+		FROM 
+		(SELECT 
+			s.store_id, 
+			sum(s.cost) as total_sales_per_store
+		FROM sales s
+		GROUP BY s.store_id
+		ORDER BY s.store_id
+		) AS x
+	) AS avg_sales
+	   
+ON total_sales.total_sales_per_store > avg_sales.avg_sale_for_all_store;
+
+/*
+ 	
+  SELECT *
+  FROM 
+	(
+		subquery1
+	)
+  INNER JOIN
+  	(
+  		subquery2
+  		(
+  			subquery1
+  		)
+  	)
+  ON Condition;
+  	
+ */
+
+
+-- 3. (Using WITH clause) Find stores who's sales is better than the average sales accross all stores 
+
+
+WITH total_sales(store_id, total_sales_per_store) AS 
+		(
+			SELECT 
+				s.store_id, 
+				sum(s.cost) AS total_sales_per_store
+			FROM sales s
+			GROUP BY s.store_id
+			ORDER BY s.store_id
+		),
+
+	avg_sales(avg_sale_for_all_store) AS 
+		(
+			SELECT
+				avg(total_sales.total_sales_per_store) AS avg_sale_for_all_store
+			FROM total_sales		
+		)
+		
+SELECT *
+FROM total_sales ts
+INNER JOIN avg_sales av
+ON ts.total_sales_per_store > av.avg_sale_for_all_store;
+
+
+/*
+ 
+WITH
+ 	CTE1 AS 
+		 	(
+		 	
+		 	),
+ 	CTE2 AS 
+		 	(
+		 	
+		 	),
+ 	CTE3 AS 
+		 	(
+		 	
+		 	)
+ 	
+SELECT *
+FROM 
+JOIN
+On;
+ 	
+*/
+
+
+/*
+ 
+ Order of Execution:
+ 	WITH Clause
+ 	total_sales query
+ 	avg_sales query
+ 	FROM total_sales ts  
+ 	INNER JOIN avg_sales av
+	ON
+	SELECT *
+	
+*/
 
 
 
--- Find stores who's sales where better than the average sales accross all stores
-select *
-from   (select s.store_id, sum(s.cost) as total_sales_per_store
-				from sales s
-				group by s.store_id
-	   ) total_sales
-join   (select cast(avg(total_sales_per_store) as int) avg_sale_for_all_store
-				from (select s.store_id, sum(s.cost) as total_sales_per_store
-		  	  		from sales s
-			  			group by s.store_id) x
-	   ) avg_sales
-on total_sales.total_sales_per_store > avg_sales.avg_sale_for_all_store;
 
 
 
--- Using WITH clause
-WITH total_sales as
-		(select s.store_id, sum(s.cost) as total_sales_per_store
-		from sales s
-		group by s.store_id),
-	avg_sales as
-		(select cast(avg(total_sales_per_store) as int) avg_sale_for_all_store
-		from total_sales)
-select *
-from   total_sales
-join   avg_sales
-on total_sales.total_sales_per_store > avg_sales.avg_sale_for_all_store;
+
+
