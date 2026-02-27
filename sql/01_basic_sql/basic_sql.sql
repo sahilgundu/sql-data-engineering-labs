@@ -1,3 +1,5 @@
+-- Source: https://mode.com/sql-tutorial/introduction-to-sql
+
 -- ========================================
 -- Datasets used in Basic_SQL Hands on
 -- ======================================== 
@@ -5,6 +7,7 @@
 SELECT * 
 FROM
     tutorial.us_housing_units;
+
     
 SELECT 
       year,
@@ -27,6 +30,9 @@ ORDER BY year DESC, year_rank;
 -- SELECT Statement 
 -- ========================================     
 
+-- Note: FROM and table name can be in one line. No need to have different line. for SELECT, we can use 
+-- different lines as there can be multiple column names.
+
 SELECT 
       *
 FROM 
@@ -39,6 +45,7 @@ SELECT
 FROM 
       tutorial.us_housing_units;
   
+
   -- if we want column names in specific format, use double quotes - 
   
   SELECT 
@@ -83,12 +90,8 @@ FROM
 WHERE 
     south <= 20;    
 
+
 -- Comparison operators on non-numerical data - 
-SELECT *
-FROM 
-    tutorial.us_housing_units
-WHERE
-    month_name != 'January';
     
 /* General Rule (ALWAYS):
     String values: 'January', 'Sahil', 'Data Engineer'
@@ -97,9 +100,30 @@ WHERE
     SQL uses double quotes to reference column names.e.g. "month_name"
 */
 
+SELECT *
+FROM 
+    tutorial.us_housing_units
+WHERE
+    month_name != 'January';
+
+
+SELECT *
+FROM 
+    tutorial.us_housing_units
+WHERE
+    "month_name" = 'January';
+
+/* 
+-	As month_name is column name, its an identifier so can be mentioned in double quotes but
+    		not necessary. "month_name". 
+-	But these are diff in diff database engines.
+-	So simple rule - forget double quotes in sql and use only single quotes everytime.
+*/
+								
+
 SELECT DISTINCT (month_name)
-  FROM tutorial.us_housing_units
- WHERE month_name > 'January';
+FROM tutorial.us_housing_units
+WHERE month_name > 'January';
  
 SELECT DISTINCT (month_name)
   FROM tutorial.us_housing_units
