@@ -1,13 +1,84 @@
 -- ========================================
--- -- SQL Joins
+-- -- SQL JOINS
 -- ========================================   
 
 /*
-Practice Problem
-Write a query that selects the school name, player name, position, and weight for every player in Georgia, 
-ordered by weight (heaviest to lightest). Be sure to make an alias for the table, and to reference all 
-column names in relation to the alias.
+	LEFT JOIN  =  LEFT OUTER JOIN   ✅ same thing
+	FULL JOIN  =  FULL OUTER JOIN   ✅ same thing
+
+	---
+	
+	### Quick summary of all joins:
+	```
+	INNER JOIN       → matched rows only
+	LEFT JOIN        → all left + matched right (NULLs on right)
+	RIGHT JOIN       → all right + matched left (NULLs on left)
+	FULL OUTER JOIN  → everything from both (NULLs on both sides) 
 */
+
+
+SELECT *
+FROM benn.college_football_teams cft 
+JOIN benn.college_football_players cfp 
+ON cft.school_name =cfp.school_name; 
+
+
+-- In INNER JOIN, join columns are identitical. In LEFT/RIGHT/FULL JOIN → join key can be NULL on one side → 
+--	you need both copies. 
+
+SELECT 
+	cft.school_name AS teams_school_name, 
+	cfp.school_name AS players_school_name, 
+	* 
+FROM benn.college_football_teams cft 
+JOIN benn.college_football_players cfp 
+ON cft.school_name =cfp.school_name; 
+
+
+-- ========================================
+-- deduplicates the join key automatically
+-- JOIN USING 
+-- ========================================   
+
+SELECT *
+FROM benn.college_football_teams cft
+JOIN benn.college_football_players cfp
+USING (school_name);  						-- school_name appears ONCE in output
+
+
+-- ========================================
+-- NATURAL JOIN — auto-detects common column names and deduplicates:
+-- ========================================   
+
+/*
+	NATURAL JOIN didn't just join on school_name — it auto-detected ALL columns with the same name in both tables and joined on every single one of them.
+	Both tables likely share:
+
+	school_name ✅
+	id ← this is the problem!
+	
+	So it effectively ran:
+	ON cft.school_name = cfp.school_name 
+	AND cft.id = cfp.id  		-- ← unintended!	
+	
+	NATURAL JOIN essentially exists as a shortcut for lazy typing, but the unpredictability makes it not worth it. 
+	In real DE work you'll almost never see it used.
+	
+	https://claude.ai/chat/964eacfe-363b-4069-9d24-7aa2f8e537eb
+*/
+
+SELECT *
+FROM benn.college_football_teams cft
+NATURAL JOIN benn.college_football_players cfp;
+
+
+/*
+Practice Problem:
+	Write a query that selects the school name, player name, position, and weight for every player in Georgia, 
+	ordered by weight (heaviest to lightest). Be sure to make an alias for the table, and to reference all 
+	column names in relation to the alias.
+*/
+
 SELECT 
       players.full_school_name, 
       players.school_name, 
@@ -18,19 +89,24 @@ FROM benn.college_football_players players
 WHERE players.state = 'GA'
 ORDER BY players.weight DESC;
 
+
 /*
-you might have a table called schools with a field called id, which could be joined against 
-school_id in any other table. These relationships are sometimes called "mappings." teams.school_name 
-and players.school_name, the two columns that map to one another, are referred to as "foreign keys" or "join keys." 
-Their mapping is written as a conditional statement:
+	you might have a table called schools with a field called id, which could be joined against 
+	school_id in any other table. These relationships are sometimes called "mappings." teams.school_name 
+	and players.school_name, the two columns that map to one another, are referred to as "foreign keys" or "join keys." 
+	Their mapping is written as a conditional statement:
 */
+
 ON teams.school_name = players.school_name
+
 
 SELECT *
 FROM benn.college_football_players players
 JOIN benn.college_football_teams teams
 ON players.school_name = teams.school_name;
 -- 26298
+-- we can observe that 26298 is row count of table players
+
 
 SELECT * 
 FROM benn.college_football_teams teams
@@ -38,13 +114,14 @@ JOIN benn.college_football_players players
 ON teams.school_name = players.school_name;
 -- 26298
 
+
 -- ========================================
 -- -- SQL INNER JOIN
 -- ========================================   
 /*
- Inner joins eliminate rows from both tables that do not satisfy the join condition set forth in the ON 
- statement. 
- In mathematical terms, an inner join is the intersection of the two tables.
+	 Inner joins eliminate rows from both tables that do not satisfy the join condition set forth in the ON 
+	 statement. 
+	 In mathematical terms, an inner join is the intersection of the two tables.
 */
 
 SELECT 
@@ -54,11 +131,22 @@ FROM benn.college_football_players players
 INNER JOIN benn.college_football_teams teams
 ON players.school_name = teams.school_name;
 
+--alternate way OF writing query - 
+
+SELECT 
+	cft.school_name AS players_school_name,
+	cfp.school_name AS teams_school_name
+FROM benn.college_football_teams cft 
+INNER JOIN benn.college_football_players cfp 
+ON cft.school_name = cfp.school_name; 
+
+
 /*
-Practice Problem
-Write a query that displays player names, school names and conferences for schools in the 
-"FBS (Division I-A Teams)" division.
+Practice Problem:
+	Write a query that displays player names, school names and conferences for schools in the 
+	"FBS (Division I-A Teams)" division.
 */
+
 SELECT 
       players.player_name, 
       players.school_name, 
@@ -69,15 +157,87 @@ INNER JOIN benn.college_football_teams teams
 ON players.school_name = teams.school_name
 WHERE teams.division = 'FBS (Division I-A Teams)'; 
 
+-- total rows in result = 14235
+
+
+-- Alternate way
+
+SELECT 
+	cfp.player_name ,
+	cfp.school_name ,
+	cft.conference 
+FROM benn.college_football_teams cft 
+INNER JOIN benn.college_football_players cfp 
+ON cfp.school_name = cft.school_name 
+WHERE cft.division = 'FBS (Division I-A Teams)' 
+
+
+/*
+Practice Problem:
+	Find out which conference has the highest average weight.
+*/
+
+SELECT *
+FROM benn.college_football_teams cft 
+INNER JOIN benn.college_football_players cfp 
+ON cft.school_name - cfp.school_name 
+
+-- this is incomplete.
+
+
 -- ========================================
 -- -- SQL OUTER JOIN
 -- ========================================   
-Follow for understanding JOIN visually - https://joins.spathon.com/
+
+--Follow for understanding JOIN visually - https://joins.spathon.com/
+
 
 -- ========================================
 -- -- SQL LEFT JOIN
 -- ========================================   
--- Inner Join 
+
+/*
+	The rule most DE teams follow: Use Left Join always and avoid right join.
+	
+	-- ❌ Avoid this
+	SELECT *
+	FROM table_2
+	RIGHT JOIN table_1 ON ...
+	
+	-- ✅ Write it as this instead
+	SELECT *
+	FROM table_1  -- master table always here
+	LEFT JOIN table_2 ON ...
+	
+	Mental model:
+	
+		"Decide your master table first, put it in FROM, then LEFT JOIN everything else onto it"
+		In real DE pipelines this maps naturally:
+		
+		FROM orders → master (every order must appear)
+		LEFT JOIN customers → enrich with customer details if available
+		LEFT JOIN products → enrich with product details if available 
+		
+		FROM orders o
+		LEFT JOIN customers c ON o.customer_id = c.id
+		LEFT JOIN products p ON o.product_id = p.id
+		LEFT JOIN shipping s ON o.shipping_id = s.id
+		
+	So your working rules going forward:
+
+		✅ INNER JOIN — when you only want matched rows
+		✅ LEFT JOIN — when master table must keep all rows
+		✅ FULL OUTER JOIN — when you need everything from both
+		❌ RIGHT JOIN — never needed, always rewrite as LEFT
+
+	Clean, simple, production-ready thinking!
+	
+*/
+
+
+-- Inner Join
+
+--EXPLAIN ANALYZE
 SELECT 
       COUNT(*) OVER () AS total_rows,
       companies.permalink AS companies_permalink,
@@ -87,9 +247,12 @@ SELECT
 FROM tutorial.crunchbase_companies AS companies 
 JOIN tutorial.crunchbase_acquisitions AS acquisitions
 ON companies.permalink = acquisitions.company_permalink;
+
 -- 1673
 
+
 -- LEFT JOIN
+
 SELECT COUNT(*) OVER () AS total_rows, *
 FROM tutorial.crunchbase_companies AS companies 
 LEFT JOIN tutorial.crunchbase_acquisitions AS acquisitions
@@ -105,19 +268,23 @@ SELECT
 FROM tutorial.crunchbase_companies AS companies 
 LEFT JOIN tutorial.crunchbase_acquisitions AS acquisitions
 ON companies.permalink = acquisitions.company_permalink;
+
 -- 27355
 
-/*
-The LEFT JOIN command tells the database to return all rows in the table in the FROM clause, 
-regardless of whether or not they have matches in the table in the LEFT JOIN clause.
-*/
 
 /*
-Practice Problem
-Write a query that performs an inner join between the tutorial.crunchbase_acquisitions table 
-and the tutorial.crunchbase_companies table, but instead of listing individual rows, count the 
-number of non-null rows in each table.
+	The LEFT JOIN command tells the database to return all rows in the table in the FROM clause, 
+	regardless of whether or not they have matches in the table in the LEFT JOIN clause.
 */
+
+
+/*
+	Practice Problem:
+	Write a query that performs an inner join between the tutorial.crunchbase_acquisitions table 
+	and the tutorial.crunchbase_companies table, but instead of listing individual rows, count the 
+	number of non-null rows in each table.
+*/
+
 SELECT 
       a.company_permalink, 
       c.permalink,
@@ -134,11 +301,18 @@ SELECT
 FROM tutorial.crunchbase_acquisitions AS a
 INNER JOIN tutorial.crunchbase_companies AS c
 ON a.company_permalink = c.permalink;
+
 -- companies_rowcount=1673, acquisitions_rowcount=1673
 
 /*
-Practice Problem
-Modify the query above to be a LEFT JOIN. Note the difference in results.
+	Important Conclusion: In Inner Join, we always take equal number rows from both columns. So above from both tables,
+	we have taken 1673 rows, equal rows.
+*/
+
+
+/*
+Practice Problem:
+	Modify the query above to be a LEFT JOIN. Note the difference in results.
 */
 
 SELECT
@@ -151,6 +325,7 @@ LEFT JOIN tutorial.crunchbase_companies AS c
 ON a.company_permalink = c.permalink;
 -- Total rows in results are 7414
 
+
 SELECT
       COUNT(a.company_permalink) AS acquisitions_rowcount,
       COUNT(c.permalink) AS companies_rowcount
@@ -159,18 +334,27 @@ LEFT JOIN tutorial.crunchbase_companies AS c
 ON a.company_permalink = c.permalink;
 -- acquisitions_rowcount=7414, companies_rowcount = 1673
 
+
 /*
 LEFT JOIN of table tutorial.crunchbase_companies with table tutorial.crunchbase_acquisitions
 */
 SELECT
-      COUNT(a.permalink) AS companies_rowcount,
-      COUNT(c.company_permalink) AS acquisitions_rowcount
+	*
+--	COUNT(a.permalink) AS companies_rowcount,
+--	COUNT(c.company_permalink) AS acquisitions_rowcount
 FROM tutorial.crunchbase_companies AS a
 LEFT JOIN  tutorial.crunchbase_acquisitions AS c
 ON a.permalink = c.company_permalink;
--- companies_rowcount=27355, acquisitions_rowcount=1673
+
+/*
+	Total rows in Left join = 27355
+	companies_rowcount = 27355 
+	acquisitions_rowcount = 1673
+*/
+-- 
 
 -- I can derive same above output with RIGHT JOIN
+3
 SELECT
       COUNT(a.company_permalink) AS acquisitions_rowcount,
       COUNT(c.permalink) AS companies_rowcount
@@ -181,13 +365,13 @@ ON a.company_permalink = c.permalink;
 
 
 /*
-Practice Problem
-Count the number of unique companies (don't double-count companies) and unique acquired companies by state. 
-Do not include results for which there is no state data, and order by the number of acquired companies from highest to lowest.
+Practice Problem: important, good problem: 
+	Count the number of unique companies (don't double-count companies) and unique acquired companies by state. 
+	Do not include results for which there is no state data, and order by the number of acquired companies from highest 
+	to lowest.
 */
 
-SELECT
-      *
+SELECT *
 FROM tutorial.crunchbase_companies AS companies
 LEFT JOIN  tutorial.crunchbase_acquisitions AS acquisitions
 ON companies.permalink = acquisitions.company_permalink;
@@ -205,9 +389,63 @@ GROUP BY companies.state_code
 ORDER BY unique_companies_acquired DESC;
 -- 51 rows
 
+
 -- ========================================
+-- -We have done anylysis of above query without using LEFT JOIN.
+-- ======================================== 
+
+DESCRIBE tutorial.crunchbase_companies;  -- DESCRIBE is a MySQL command — doesn't work in PostgreSQL. 
+
+SELECT *
+FROM information_schema.columns
+WHERE table_name = 'crunchbase_companies';
+
+
+SELECT 
+	cc.state_code,
+	count(DISTINCT(cc.permalink)) AS companies_number_per_state	 
+FROM tutorial.crunchbase_companies cc 
+WHERE 
+	cc.state_code IS NOT NULL AND
+	NULLIF(cc.state_code, '') IS NOT NULL     			-- price_amount != '' Note: here, we are finding blank string
+														-- https://claude.ai/chat/c2b3f09f-a55f-48f4-bf3b-961624ba9a1e	
+GROUP BY cc.state_code
+ORDER BY companies_number_per_state DESC;
+
+
+SELECT 
+	ca.company_state_code,
+	count(DISTINCT(ca.company_permalink)) AS aquired_companies_per_state	  
+FROM tutorial.crunchbase_acquisitions ca 
+WHERE 
+	ca.company_state_code IS NOT NULL AND 
+	NULLIF (ca.company_state_code, '') IS NOT NULL 
+GROUP BY ca.company_state_code
+ORDER BY aquired_companies_per_state DESC;
+
+
+-- Below is LEFT JOIN for this problem.
+
+SELECT
+	cc.state_code,
+	count(DISTINCT(cc.permalink)) AS companies_number_per_state,
+	count(DISTINCT(ca.company_permalink)) AS aquired_companies_per_state	 	
+FROM tutorial.crunchbase_companies cc 
+LEFT JOIN tutorial.crunchbase_acquisitions ca
+On cc.permalink = ca.company_permalink
+WHERE 
+	cc.state_code IS NOT NULL AND
+	NULLIF(cc.state_code, '') IS NOT NULL  
+GROUP BY cc.state_code
+ORDER BY companies_number_per_state DESC;
+
+-- 51 rows in result set
+
+
+
+-- ================================================================================
 -- -- SQL RIGHT JOIN
--- ========================================   
+-- ================================================================================   
 /*
 It's worth noting that LEFT JOIN and RIGHT JOIN can be written as LEFT OUTER JOIN and RIGHT OUTER JOIN, respectively.
 */
@@ -228,6 +466,14 @@ ON companies.permalink = acquisitions.company_permalink
 WHERE companies.state_code IS NOT NULL 
 GROUP BY companies.state_code
 ORDER BY unique_companies_acquired DESC;
+
+
+-- ========================================
+-- -- Chain Joins 
+-- ========================================   
+
+https://claude.ai/chat/964eacfe-363b-4069-9d24-7aa2f8e537eb
+
 
 -- ========================================
 -- -- SQL Joins Using WHERE or ON
@@ -255,14 +501,15 @@ ON companies.permalink = acquisitions.company_permalink
 AND acquisitions.company_permalink != '/company/1000memories'
 ORDER BY companies.permalink;
 -- Row = 27355
+
 /*
 SQL logical processing order:
-1. FROM
-2. LEFT JOIN
-3. ON
-4. AND  (part of the ON predicate)
-5. SELECT
-6. ORDER BY
+	1. FROM
+	2. LEFT JOIN
+	3. ON
+	4. AND  (part of the ON predicate)
+	5. SELECT
+	6. ORDER BY
 
 AND is Part of the ON predicate” = it’s inside the boolean condition that defines the join match.
 In this LEFT join, ON predicate is -
@@ -284,8 +531,8 @@ SELECT companies.permalink AS companies_permalink,
 FROM tutorial.crunchbase_companies companies
 LEFT JOIN tutorial.crunchbase_acquisitions acquisitions
 ON companies.permalink = acquisitions.company_permalink
-WHERE acquisitions.company_permalink != '/company/1000memories'
-OR acquisitions.company_permalink IS NULL
+WHERE acquisitions.company_permalink != '/company/1000memories' OR 
+	  acquisitions.company_permalink IS NULL
 ORDER BY companies.permalink;
 -- Rows = 27354
 /*
