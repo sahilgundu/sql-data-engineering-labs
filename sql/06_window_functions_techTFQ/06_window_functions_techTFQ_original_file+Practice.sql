@@ -42,7 +42,7 @@ select * from customer.employee;
 
 
 -- Using Aggregate function as Window Function
--- Without window function, SQL will reduce the no of records.
+-- Without window function, SQL will reduce the no of records to one cell only. one cell result. 
 
 SELECT max(salary)
 FROM employee e ;
