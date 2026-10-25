@@ -212,7 +212,7 @@ WHERE table_schema = 'benn'
   AND table_name   = 'college_football_teams';
 
 
-create table IF NOT EXISTS employee
+create table IF NOT EXISTS employee   -- employee table is present in customer schema
 ( emp_ID int
 , emp_NAME varchar(50)
 , DEPT_NAME varchar(50)

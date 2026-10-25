@@ -33,16 +33,27 @@ create table IF NOT EXISTS employee
 
 
 
-/* **************
-   Window Function 
-   ************** */
+/* *****************
+   	Window Function 
+   ***************** */
 
-select * from employee;
+select * from customer.employee;
 -- 24 rows
 
 
 -- Using Aggregate function as Window Function
 -- Without window function, SQL will reduce the no of records.
+
+SELECT max(salary)
+FROM employee e ;
+-- Gives reslut as single cell 
+
+SELECT max(salary) over()
+FROM employee e ;
+-- Gives reslut as one, new column with same number of records as table employee e
+
+--------------------------------------------------------------------------------------
+
 
 SELECT MAX(salary) AS max_salary
 FROM employee;
@@ -64,34 +75,44 @@ FROM employee e;
  * table (or column salary) and creates new window with same value as 11000.  
  * Here, we are using aggragate function but it becomes window function after the use of over().
  * There is only one window present here.
- * By using MAX as an window function, SQL will not reduce records but the result will be shown corresponding to each record.
+ * By using MAX as an window function, SQL will not reduce records but the result will be shown corresponding to 
+ * each record.
 */
-
+--------------------------------------------------------------------------------------
 
 SELECT 
 		e.*,
 		MAX(salary) OVER (PARTITION BY dept_name) AS max_salary_partition		
 FROM employee e;
 
--- for each value in dept_name, one window is created and row_number() function is performed on that window separately.
+
+
+-- for each value in dept_name, one window is created and max() function is performed on that window separately.
 -- So we have such 4 windows in above query - Admin, Finance, HR, IT
-
-
 -- ordering within each partition, by emp_id
+
+SELECT 
+		e.*,
+		row_number() over(PARTITION BY dept_name) AS row_number_partition
+FROM employee e;
+
+
 SELECT 
 		e.*,
 		row_number() over(PARTITION BY dept_name ORDER BY emp_id) AS rn_partition
 FROM employee e;
 
 
+
 -- row_number(), rank() and dense_rank()
 SELECT 
 		e.*,
-		row_number() over() AS rn
+		row_number() over() AS "Row_Number_Function"
 FROM employee e;
 
 
 -- Fetch the first 2 employees from each department to join the company.
+
 SELECT x.*
 FROM(
 		SELECT 
@@ -104,6 +125,7 @@ WHERE x.rn <3;
 
 -- Fetch the top 3 employees in each department earning the max salary.
 -- using row_number()
+
 SELECT x.*
 FROM (SELECT 
 			e.*,
