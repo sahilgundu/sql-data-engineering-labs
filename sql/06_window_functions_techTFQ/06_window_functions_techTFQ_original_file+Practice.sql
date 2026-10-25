@@ -97,9 +97,13 @@ FROM employee e;
 -- Note: OVER() मध्ये ORDER BY नाही, म्हणून MAX() पूर्ण partition वर चालतो. Partitions ची संख्या = distinct dept_name values (NULL असेल तर तीही वेगळी partition)
 -- Row count: output rows = input rows
 
--- for each value in dept_name, one window is created and max() function is performed on that window separately.
+
+-- ####
+-- for each distint value in dept_name, one window is created and max() function is performed on that window separately.
 -- So we have such 4 windows in above query - Admin, Finance, HR, IT
 -- ordering within each partition, by emp_id
+
+-----------------------------
 
 SELECT 
 		e.*,
