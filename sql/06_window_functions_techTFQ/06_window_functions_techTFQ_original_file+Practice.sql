@@ -28,7 +28,14 @@ create table IF NOT EXISTS employee
 --insert into employee values(122, 'Ibrahim', 'IT', 8000);
 --insert into employee values(123, 'Vikram', 'IT', 8000);
 --insert into employee values(124, 'Dheeraj', 'IT', 11000);
---COMMIT;
+
+
+-- inserting NULL dept_no for "group by" row and then deleting again.
+
+insert into employee values(999, 'Test_NULL', NULL, 7500);
+
+
+COMMIT;
 --
 
 
@@ -52,12 +59,57 @@ SELECT max(salary) over()
 FROM employee e ;
 -- Gives reslut as one, new column with same number of records as table employee e
 
+-- SELECT MAX(salary) AS max_salary
+-- FROM employee;
+
 --------------------------------------------------------------------------------------
 
+--This is group by case where NULL value is present in dept_no. 
+--so we get separate row for that NULL value after group by. 
 
-SELECT MAX(salary) AS max_salary
+
+SELECT 
+	dept_name, 
+	MAX(salary)
+FROM employee
+GROUP BY dept_name;     
+
+
+-- You can refer https://claude.ai/chat/bb679de8-b854-442d-8479-7249b738adf2
+
+--------------------------------------------------------------------------------------
+
+--We can count in GROUP BY query like below:
+
+--EXPLAIN 
+SELECT
+    COUNT(DISTINCT dept_name)                       AS distinct_excl_null,
+    COUNT(DISTINCT COALESCE(dept_name, '~NULL~'))   AS distinct_incl_null,
+    (SELECT COUNT(*) FROM (SELECT dept_name FROM employee GROUP BY dept_name) g) AS group_by_rows
 FROM employee;
 
+
+-- Grain: पूर्ण table = एक row (GROUP BY नाही, फक्त aggregates)
+-- Execution order:
+--   1. FROM employee            -> पूर्ण table, 25 rows (NULL test row धरून)
+--   2. WHERE                    -> नाही; सगळे rows पुढे जातात
+--   3. GROUP BY                 -> नाही; aggregates असल्यामुळे पूर्ण table एक group
+--   4. HAVING                   -> नाही; तो एकच group टिकतो
+--   5. SELECT                   -> एका group वर तीन expressions:
+--      5a. COUNT(DISTINCT dept_name)          -> NULL skip होतो -> 4
+--      5b. COUNT(DISTINCT COALESCE(...))      -> NULL ला '~NULL~' करून मोजतो -> 5
+--      5c. scalar subquery (InitPlan, एकदाच) -> inner-most पासून:
+--          i.   FROM employee                 -> वेगळा scan, 25 rows
+--          ii.  GROUP BY dept_name            -> 5 groups (NULL चा स्वतंत्र group)
+--          iii. SELECT dept_name              -> 5 rows = derived table g
+--          iv.  SELECT COUNT(*) FROM g        -> g एक group -> 5 (scalar)
+--   6. ORDER BY                 -> नाही; 1 row असल्यामुळे फरक नाही
+-- Note: COUNT(*) सोडून बाकी सगळे aggregates NULL skip करतात; GROUP BY NULL ला group बनवतो.
+--       distinct_excl_null != group_by_rows म्हणजे grouping column मध्ये NULL आहे.
+--       '~NULL~' sentinel कुठल्याही real dept_name शी collide होऊ नये.
+-- Row count: input 25 rows -> output 1 row (expected: 4 | 5 | 5)
+
+--------------------------------------------------------------------------------------
 
 SELECT 
 		dept_name, 
@@ -65,6 +117,32 @@ SELECT
 FROM employee
 GROUP BY dept_name; 
 
+
+SELECT 
+	MAX(salary)
+FROM employee
+GROUP BY dept_name;
+
+-- Gives 4 rows in tabel and 1 column
+
+
+SELECT 
+	dept_name ,
+	MAX(salary)
+FROM employee
+GROUP BY dept_name;
+
+
+SELECT 
+	employee.*,
+	dept_name ,
+	MAX(salary)
+FROM employee
+GROUP BY dept_name;
+
+---------------------------------------------------------------------------------------
+
+--WINDOW Fuction Queries stars here - 
 
 SELECT 
 		e.*,
@@ -92,19 +170,84 @@ FROM employee e;
 -- ordering within each partition, by emp_id
 
 SELECT 
+	emp_id,
+	dept_name,
+	row_number() over(PARTITION BY dept_name ORDER BY emp_id) -- AS row_number_partition
+FROM customer.employee e;
+
+------------------------------------------
+
+SELECT 
 		e.*,
 		row_number() over(PARTITION BY dept_name) AS row_number_partition
 FROM employee e;
 
+------------------------------------------
 
 SELECT 
 		e.*,
-		row_number() over(PARTITION BY dept_name ORDER BY emp_id) AS rn_partition
+		row_number() over(PARTITION BY dept_name ORDER BY emp_id) AS row_number_partition
 FROM employee e;
 
 
+-- Grain: one row per employee (input grain = output grain)
+-- Execution order:  (>> = code मध्ये आहे,  .. = absent)
+
+-- >> 1. FROM employee e              -> employee च्या सगळ्या rows load, alias e
+            -- .. 2. WHERE                        -> absent; सगळ्या rows row_number() पर्यंत पोहोचतात
+            -- .. 3. GROUP BY                     -> absent; rows collapse नाहीत
+            -- .. 4. HAVING                       -> absent
+-- >> 5. PARTITION BY dept_name       -> rows department-wise logical groups मध्ये वाटल्या
+-- >> 6. ORDER BY emp_id (in OVER)    -> प्रत्येक partition आत emp_id ने sort, फक्त numbering साठी
+-- >> 7. row_number()                 -> प्रत्येक partition मध्ये 1,2,3...; नवीन dept ला reset
+-- >> 8. SELECT e.*, ... AS alias     -> columns project; alias इथे assign होतो
+            -- .. 9. ORDER BY (outer)             -> absent; output order guaranteed नाही
+
+-- Note: window function WHERE मध्ये वापरता येत नाही (WHERE आधी run होतं) -> filter हवा असेल तर subquery/CTE वापर
+-- Note: OVER() मधला ORDER BY result चा display order ठरवत नाही; पक्का order हवा असेल तर शेवटी ORDER BY dept_name, emp_id
+-- Row count: output rows = input rows (window function rows collapse करत नाही)
+
+-------------------------------------------------------------------------------------------
+
+-- Note: OVER() मधला ORDER BY result चा display order ठरवत नाही; पक्का order हवा असेल तर शेवटी ORDER BY dept_name, emp_id
+
+SELECT 
+	emp_id,
+	dept_name,
+	row_number() OVER(PARTITION BY dept_name ORDER BY emp_id)
+FROM customer.employee
+ORDER BY dept_name DESC;
+
+------------------------------------------------------------------------------------------
+
+SELECT 
+	emp_id,
+	dept_name,
+	row_number() OVER(PARTITION BY dept_name ORDER BY emp_id)
+FROM customer.employee
+ORDER BY emp_id DESC;
+
+-- Grain: one row per employee (input grain = output grain)
+-- Execution order:  (>> = code मध्ये आहे,  .. = absent)
+
+-- >> 1. FROM customer.employee         -> 25 rows load
+            -- .. 2. WHERE                          -> absent; सगळ्या 25 rows पुढे
+            -- .. 3. GROUP BY                       -> absent; rows collapse नाहीत
+            -- .. 4. HAVING                         -> absent
+-- >> 5. PARTITION BY dept_name         -> 5 partitions: IT, HR, Admin, Finance, NULL
+-- >> 6. ORDER BY emp_id (in OVER)      -> प्रत्येक partition आत emp_id ASC sort
+-- >> 7. row_number()                   -> ASC क्रमानुसार 1,2,3...; number इथेच fix
+-- >> 8. SELECT emp_id, dept_name, ...  -> columns project; alias नाही -> row_number
+-- >> 9. ORDER BY emp_id DESC (outer)   -> fixed numbers सकट rows पुन्हा DESC sort
+
+-- Note: OVER() मधला ORDER BY numbering ठरवतो, outer ORDER BY display ठरवतो -> दोन्ही स्वतंत्र
+-- Note: PARTITION BY मध्ये NULL dept_name = एक वेगळा partition (emp_id 999)
+-- Row count: output rows = input rows = 25
+
+------------------------------------------------------------------------------------------
 
 -- row_number(), rank() and dense_rank()
+
 SELECT 
 		e.*,
 		row_number() over() AS "Row_Number_Function"
@@ -112,7 +255,19 @@ FROM employee e;
 
 
 -- Fetch the first 2 employees from each department to join the company.
+-- Using subquery & row_number
 
+SELECT *
+FROM (
+		SELECT 
+			emp_id,
+			dept_name,
+			row_number() over(PARTITION BY dept_name ORDER BY emp_id ASC) AS rn
+		FROM employee
+		)
+WHERE rn = 1 OR rn = 2
+
+-- Alternate Queries
 SELECT x.*
 FROM(
 		SELECT 
@@ -122,17 +277,30 @@ FROM(
 	)x
 WHERE x.rn <3;
 
+-- same query logic with different variables only 
+SELECT new_table.*
+FROM (
+		SELECT 
+			e.*,
+			row_number() over(PARTITION BY e.dept_name ORDER BY emp_id) AS RN_Column
+		FROM employee e
+		) AS new_table
+WHERE new_table.RN_Column <3
+
+-----------------------------------------------------------------------------------------------
 
 -- Fetch the top 3 employees in each department earning the max salary.
+
 -- using row_number()
 
-SELECT x.*
-FROM (SELECT 
+SELECT new_table.*
+FROM (
+		SELECT 
 			e.*,
-			row_number() over(PARTITION BY dept_name ORDER BY salary DESC) AS rn
-	  FROM employee e
-	 ) x 
-WHERE x.rn <= 3;
+			row_number() over(PARTITION BY e.dept_name ORDER BY salary desc) AS rn_column	
+		FROM employee e 
+	) AS new_table
+WHERE new_table.rn_column <4
  
 
 -- using rank()
@@ -158,6 +326,16 @@ FROM (
 	 ) x
 WHERE x.rnk < 4;
 
+
+-- same query logic with different variables only 
+SELECT new_table.*
+FROM (
+		SELECT 
+			e.*,
+			rank() over(PARTITION BY e.dept_name ORDER BY e.salary desc) AS rank_column
+		FROM employee e 
+		) AS new_table
+WHERE new_table.rank_column <4
 
 
 -- Checking the different between rank, dense_rnk and row_number window functions:
