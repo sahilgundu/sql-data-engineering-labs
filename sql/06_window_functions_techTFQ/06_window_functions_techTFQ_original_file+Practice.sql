@@ -49,7 +49,7 @@ select * from customer.employee;
 
 
 -- Using Aggregate function as Window Function
--- Without window function, SQL will reduce the no of records.
+-- Without window function, SQL will reduce the no of records to one cell only. one cell result. 
 
 SELECT max(salary)
 FROM employee e ;
@@ -164,10 +164,24 @@ SELECT
 FROM employee e;
 
 
+-- Grain: one row per employee (same as source) -> no GROUP BY; window function adds dept-level value to each row
+-- Execution order:
+-- 1. FROM employee e        -> सगळ्या rows वाचल्या जातात, alias e लागतो
+-- 2. WHERE                  -> नाही; सगळ्या rows पुढे जातात
+-- 3. GROUP BY / HAVING      -> नाही; rows collapse होत नाहीत
+-- 4. Window function        -> rows dept_name नुसार partitions मध्ये विभागल्या जातात; प्रत्येक partition वर MAX(salary) चालतो आणि तो value त्या partition मधल्या प्रत्येक row ला जोडला जातो
+-- 5. SELECT projection      -> e.* + नवीन column max_salary_partition
+-- 6. ORDER BY               -> नाही; त्यामुळे output चा row order guaranteed नाही
+-- Note: OVER() मध्ये ORDER BY नाही, म्हणून MAX() पूर्ण partition वर चालतो. Partitions ची संख्या = distinct dept_name values (NULL असेल तर तीही वेगळी partition)
+-- Row count: output rows = input rows
 
--- for each value in dept_name, one window is created and max() function is performed on that window separately.
+
+-- ####
+-- for each distint value in dept_name, one window is created and max() function is performed on that window separately.
 -- So we have such 4 windows in above query - Admin, Finance, HR, IT
 -- ordering within each partition, by emp_id
+
+-----------------------------
 
 SELECT 
 	emp_id,
