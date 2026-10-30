@@ -1,7 +1,10 @@
 -- Problem: Histogram of Tweets (Twitter, Easy)
+-- Link: https://datalemur.com/questions/sql-histogram-tweets
 -- Statement: For 2022, bucket users by tweet count; output tweet_bucket and number of users per bucket
 -- Key idea: aggregate twice - count tweets per user (CTE), then count users per tweet count
 -- Status: Accepted (needed local rebuild first)
+--Key idea, एका ओळीत: Histogram = aggregate twice — first count per user, then count users per count. 
+--Interview मध्ये हा pattern “aggregate of an aggregate” म्हणून वारंवार येतो.
 
 set search_path to datalemur;
 
