@@ -32,10 +32,9 @@ create table IF NOT EXISTS employee
 
 -- inserting NULL dept_no for "group by" row and then deleting again.
 
-insert into employee values(999, 'Test_NULL', NULL, 7500);
+-- insert into employee values(999, 'Test_NULL', NULL, 7500);
 
-
-COMMIT;
+--COMMIT;
 --
 
 
