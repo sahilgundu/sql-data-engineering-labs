@@ -1,4 +1,6 @@
 -- Source: DataLemur "Highest-Grossing Items" (Amazon), full dataset, 15 rows
+-- Link: https://datalemur.com/questions/sql-highest-grossing
+
 create schema if not exists datalemur;
 
 drop table if exists datalemur.product_spend;
